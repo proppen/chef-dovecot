@@ -19,3 +19,5 @@
 # limitations under the License.
 
 default['dovecot']['_base_dir'] = '/etc/dovecot'
+default['postfix']['catch-all']['localuser'] = nil
+

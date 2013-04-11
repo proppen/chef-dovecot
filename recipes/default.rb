@@ -17,23 +17,44 @@
 # limitations under the License.
 #
 
-package 'dovecot-core'
+dovecotpkg = value_for_platform_family(
+  ["rhel", "fedora", "suse"] => "dovecot",
+   "debian" => "dovecot-core"
+)
+
+package dovecotpkg
 
 service 'dovecot' do
   supports :status => true, :restart => true, :reload => true
   action :enable
 end
 
-# generate main.cf
-config = Dovecot::Config.new(node['dovecot'].to_hash)
-
-# write main.cf
+case node['platform_family']
+when "rhel", "fedora", "suse"
+  template '/etc/dovecot/dovecot.conf' do 
+    source 'dovecot.conf.erb'
+    mode 0644
+    owner 'root'
+    group 'root'
+  end
+when "debian"
+  # generate main.cf
+  config = Dovecot::Config.new(node['dovecot'].to_hash)
+  
+  # write main.cf
 file ::File.join(node['dovecot']['_base_dir'], 'dovecot.conf') do
-  content config.content
-  user 'root'
-  group 0
-  mode 00644
-  notifies :reload, "service[dovecot]"
+    content config.content
+    user 'root'
+    group 0
+    mode 00644
+    notifies :reload, "service[dovecot]"
+  end
+end
+
+file "/var/spool/mail/#{node['postfix']['catch-all']['localuser']}" do
+  owner node['postfix']['catch-all']['localuser']
+  mode 0600
+  action :create
 end
 
 # start service
